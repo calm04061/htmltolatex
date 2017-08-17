@@ -10,11 +10,11 @@ import cz.kebrt.html2latex.io.OutputStringWriter;
 import cz.kebrt.html2latex.main.ProgramInput;
 import cz.kebrt.html2latex.parser.ElementEnd;
 import cz.kebrt.html2latex.parser.ElementStart;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.*;
 import java.util.Map.Entry;
 
 /**
@@ -641,7 +641,33 @@ public class Converter {
 	 *             tag not found in the configuration
 	 */
 	public void imgStart(ElementStart es) throws IOException, NoItemException {
-		_writer.write("\n\\includegraphics{" + es.getAttributes().get("src") + "}");
+		HashMap<String, String> attributes = es.getAttributes();
+		String style = attributes.get("style");
+		Map<String,String> styleObj=new HashMap<String, String>();
+		String[] split = style.split(";");
+		for(String s:split){
+			String[] split1 = s.trim().split(":");
+			styleObj.put(split1[0].trim(),split1[1].trim());
+		}
+		_writer.write("\n\\includegraphics[");
+		List<String> tempAttrStrs=new ArrayList<String>();
+		String width=attributes.get("width");
+		if(width==null){
+			width = styleObj.get("width");
+		}
+		if(width!=null){
+			tempAttrStrs.add("width="+width);
+		}
+		String height=attributes.get("height");
+		if(height==null){
+			height = styleObj.get("height");
+		}
+		if(height!=null){
+			tempAttrStrs.add("height="+height);
+		}
+		String join = StringUtils.join(tempAttrStrs, ",");
+		_writer.write(join);
+		_writer.write("]{" + attributes.get("src") + "}");
 	}
 
 	/**

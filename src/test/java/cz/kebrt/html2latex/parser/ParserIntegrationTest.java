@@ -1,20 +1,27 @@
 package cz.kebrt.html2latex.parser;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 import cz.kebrt.html2latex.exception.FatalErrorException;
 import org.junit.Test;
 
 import java.io.*;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ParserIntegrationTest {
     private static final String NL = "\n";
     private static final String TAB = "\t";
-
+    ExecutorService executor= Executors.newFixedThreadPool(5);
+    ExecutorService web= Executors.newFixedThreadPool(5);
+    private List<Future<String>> futures = new ArrayList<Future<String>>();
+    private String basePath = "H://tex";
     @Test
     public void shouldNotConvertNonHTMLString() {
         String input = "there is no HTML here!";
@@ -82,25 +89,49 @@ public class ParserIntegrationTest {
     }
 
     @Test
-    public void loadNet() throws IOException, SQLException, FatalErrorException {
+    public void loadNet() throws IOException, SQLException, FatalErrorException, ExecutionException, InterruptedException {
 
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://mysql.aixuexi.com:3306/tiku", "root", "root123");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select* from topic_content");
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//
-//        FileOutputStream fos=new FileOutputStream("result.txt");
-//        BufferedWriter bufferedWriter=new BufferedWriter(new OutputStreamWriter(fos));
-//        while (resultSet.next()) {
-//            String topic_content_html = resultSet.getString("topic_content_html");
-//            String parse = parse(topic_content_html);
-////            bufferedWriter.write(topic_content_html);
+        Connection connection = DriverManager.getConnection("jdbc:mysql://mysql.aixuexi.com:3306/tiku", "root", "root123");
+        PreparedStatement preparedStatement = connection.prepareStatement("select* from topic_content  limit 100,100");
+        ResultSet resultSet = preparedStatement.executeQuery();
+        String temp =basePath+"/"+System.currentTimeMillis();
+        File file = new File(temp, "result.tex");
+        File parentFile = file.getParentFile();
+        if(!parentFile.exists()){
+            parentFile.mkdirs();
+        }
+        FileOutputStream fos=new FileOutputStream(file);
+        BufferedWriter bufferedWriter=new BufferedWriter(new OutputStreamWriter(fos));
+        bufferedWriter.write("\\documentclass[UTF8]{ctexart}");
+        bufferedWriter.newLine();
+        bufferedWriter.write("\\usepackage{graphicx}");
+        bufferedWriter.newLine();
+        bufferedWriter.write("\\begin{document}");
+        bufferedWriter.newLine();
+        while (resultSet.next()) {
+            String topic_content_html = resultSet.getString("topic_content_html");
+//            String id = resultSet.getString("id");
+
+            Future<String> submit = executor.submit(new ParseServer(topic_content_html, web,temp));
+            futures.add(submit);
+//            String parse = parse(topic_content_html).replace("\\[","$").replace("\\]","$");
+//            bufferedWriter.write(topic_content_html);
 //            bufferedWriter.write(parse);
+//            System.out.println(parse);
 //            bufferedWriter.write("\t\n");
-//        }
-        String parse = parse("<div class=\"axx_piece\">\n" +
-                "      <p>电梯上升18米记作\\[18\\]米，那么\\[-6\\]米表示__________．</p>\n" +
-                "    </div>");
-        System.out.println(parse);
+        }
+        for(Future<String> feature:futures){
+            bufferedWriter.write(feature.get());
+            bufferedWriter.newLine();
+        }
+
+        bufferedWriter.write("\\end{document}");
+        bufferedWriter.newLine();
+        bufferedWriter.close();
+//        String parse = parse("<div class=\"axx_piece\">\n" +
+//                "      <p>电梯上升18米记作\\[18\\]米，那么\\[-6\\]米表示__________．</p>\n" +
+//                "    </div>").replace("\\[","$").replace("\\]","$");
+//        System.out.println(parse);
     }
 
     private void parse(String input, String expectedOutput) {
