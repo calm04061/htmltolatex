@@ -37,9 +37,15 @@
     </dependencies>
     <distributionManagement>
         <repository>
-            <id>mvn-repo</id>
-            <url>file://${project.build.directory}/repository</url>
+            <id>internal.repo</id>
+            <name>Temporary Staging Repository</name>
+            <url>${project.build.directory}/release</url>
         </repository>
+        <snapshotRepository>
+            <id>internal.repo</id>
+            <name>Temporary Staging Repository</name>
+            <url>${project.build.directory}/snapshot</url>
+        </snapshotRepository>
     </distributionManagement>
     <build>
         <plugins>
@@ -62,8 +68,9 @@
                     <includes><include>**/*</include></includes>
                     <repositoryName>htmltolatex</repositoryName>      <!-- github repo name -->
                     <repositoryOwner>calm04061</repositoryOwner>    <!-- github username  -->
-                    <oauth2Token>${github-token}</oauth2Token>
-                </configuration>
+                    <userName>calm0406@163.com</userName>
+                    <repositoryOwner>calm04061</repositoryOwner>    <!-- github username  -->
+                    <oauth2Token>${github-token}</oauth2Token>                </configuration>
                 <executions>
                     <execution>
                         <goals>
