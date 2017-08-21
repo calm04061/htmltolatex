@@ -1,0 +1,12 @@
+# 测试
+sudo: required
+language: java
+# 仓库的分支
+branches:
+  only:
+    - master
+    - develop
+jdk:
+  - oraclejdk8
+install:
+ - mvn deploy -Dmaven.test.skip -Dgithub-token=${api_token}
